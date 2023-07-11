@@ -1,5 +1,6 @@
 const videoGrid = document.getElementById("video-grid");
-const myVideo = document.createElement("video");
+const myVideo = document.getElementById("user1");
+const remoteUserVideo = document.getElementById("user2");
 
 myVideo.muted = true;
 let socket = io.connect();
@@ -14,44 +15,15 @@ let server = {
   ],
 };
 
-navigator.mediaDevices
-  .getUserMedia({
-    audio: true,
-    video: true,
-  })
-  .then((stream) => {
-    myVideoStream = stream;
-    addVideoStream(myVideo, stream);
-
-    createOffer();
-
-    // socket.on("user-connected", (userId) => {
-    //   connectToNewUser(userId, stream);
-    // });
-  });
-
-const user = prompt("Enter username");
-let remoteUser = user.split(" ")[1];
-socket.on("connect", () => {
-  if (socket.connected) {
-    socket.emit("userConnected", {
-      displayName: user.split(" ")[0],
-    });
-  }
-});
-
-const addVideoStream = (video, stream) => {
-  video.srcObject = stream;
-  video.addEventListener("loadedmetadata", () => {
-    video.play();
-    videoGrid.append(video);
-  });
-};
-
 const createPeerConnection = async () => {
   peerConnection = new RTCPeerConnection(server);
   remoteStream = new MediaStream();
-  addVideoStream(myVideo, remoteStream);
+  remoteUserVideo.srcObject = remoteStream;
+  remoteUserVideo.addEventListener("loadedmetadata", () => {
+    remoteUserVideo.play();
+    videoGrid.append(remoteUserVideo);
+  });
+  // addVideoStream(myVideo, remoteStream);
 
   myVideoStream.getTracks().forEach((track) => {
     peerConnection.addTrack(track, myVideoStream);
@@ -80,7 +52,6 @@ const createPeerConnection = async () => {
     }
   };
 };
-
 let createOffer = async () => {
   // peerConnection = new RTCPeerConnection(server);
   createPeerConnection();
@@ -92,6 +63,47 @@ let createOffer = async () => {
     offer: peerConnection.localDescription,
   });
 };
+
+navigator.mediaDevices
+  .getUserMedia({
+    audio: true,
+    video: true,
+  })
+  .then((stream) => {
+    myVideoStream = stream;
+    // addVideoStream(myVideo, stream);
+    myVideo.srcObject = stream;
+    myVideo.addEventListener("loadedmetadata", () => {
+      myVideo.play();
+      videoGrid.append(myVideo);
+    });
+    createOffer();
+
+    // socket.on("user-connected", (userId) => {
+    //   connectToNewUser(userId, stream);
+    // });
+  });
+
+const user = prompt("Enter username");
+let remoteUser = user.split(" ")[1];
+socket.on("connect", () => {
+  if (socket.connected) {
+    socket.emit("userConnected", {
+      displayName: user.split(" ")[0],
+    });
+  }
+});
+
+const addVideoStream = (video, stream) => {
+  video.srcObject = stream;
+  video.addEventListener("loadedmetadata", () => {
+    video.play();
+    videoGrid.append(video);
+  });
+};
+
+
+
 
 const createAnswer = async (data) => {
   remoteUser = data.remoteUser;
