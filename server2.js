@@ -31,13 +31,18 @@ const io = require("socket.io")(server, {
 let userConnections = [];
 
 io.on("connection", (socket) => {
-  // console.log("socket id is", socket);
-  socket.on("userConnected", (data) => {
     userConnections.push({
       connectionId: socket.id,
-      userId: data.displayName,
     });
-  });
+    console.log("userConnections",userConnections);
+//   socket.on("connection", (socket) => {
+//   });
+  // console.log("socket id is", socket);
+  //   socket.on("userConnected", (data) => {
+  //     userConnections.push({
+  //       connectionId: socket.id,
+  //     });
+  //   });
 
   socket.on("offerSentToRemote", (data) => {
     let offerReceiver = userConnections.find(
@@ -78,16 +83,17 @@ io.on("connection", (socket) => {
         (user) => user.connectionId !== socket.id
       );
     }
+    console.log("user disconnect",socket.id);
+    console.log("userConnections",userConnections);
   });
-  socket.on('remoteUserClosed',(data)=>{
+  socket.on("remoteUserClosed", (data) => {
     let closedUser = userConnections.find(
       (users) => users.userId === data.remoteUser
     );
 
     if (closedUser) {
-      console.log('closed user id :',closedUser.connectionId);
+      console.log("closed user id :", closedUser.connectionId);
       socket.to(closedUser.connectionId).emit("closedRemoteUser", data);
-    }  })
+    }
+  });
 });
-
-
