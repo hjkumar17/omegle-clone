@@ -38,25 +38,37 @@ io.on("connection", (socket) => {
 //   socket.on("connection", (socket) => {
 //   });
   // console.log("socket id is", socket);
-  //   socket.on("userConnected", (data) => {
-  //     userConnections.push({
-  //       connectionId: socket.id,
-  //     });
-  //   });
+    // socket.on("userConnected", (data) => {
+    //   userConnections.push({
+    //     connectionId: socket.id,
+    //   });
+    // });
 
-  socket.on("offerSentToRemote", (data) => {
-    let offerReceiver = userConnections.find(
-      (users) => users.userId === data.remoteUser
+  // socket.on("offerSentToRemote", (data) => {
+  //   let offerReceiver = userConnections.find(
+  //     (users) => users.userId === data.remoteUser
+  //   );
+
+  //   if (offerReceiver) {
+  //     socket.to(offerReceiver.connectionId).emit("receiveOffer", data);
+  //   }
+  // });
+  socket.on("offerSendToServer", (data) => {
+    // console.log(data);
+    let receiverSocketId = userConnections.find(
+      (users) => users.connectionId !== data.selfSocketId
     );
 
-    if (offerReceiver) {
-      socket.to(offerReceiver.connectionId).emit("receiveOffer", data);
+    if (receiverSocketId) {
+      socket.to(receiverSocketId.connectionId).emit("receiveOffer", data);
+    }else{
+      socket.to(data.selfSocketId).emit('noUserFoundToConnect')
     }
   });
 
   socket.on("sendAnswerToUser1", (data) => {
     let answerReciver = userConnections.find(
-      (users) => users.userId === data.receiver
+      (users) => users.connectionId !== data.selfSocketId
     );
 
     if (answerReciver) {
@@ -66,9 +78,9 @@ io.on("connection", (socket) => {
 
   socket.on("candidateSentToUser", (data) => {
     let candidateReciver = userConnections.find(
-      (users) => users.userId === data.remoteUser
+      (users) => users.connectionId !== data.selfSocketId
     );
-
+console.log(candidateReciver);
     if (candidateReciver) {
       socket.to(candidateReciver.connectionId).emit("candidateReciver", data);
     }

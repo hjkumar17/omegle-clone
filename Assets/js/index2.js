@@ -15,22 +15,154 @@ let msgSendButton = document.querySelector("#send");
 let msgTextArea = document.querySelector(".messages");
 
 
+// let mediaDevice = await  navigator.mediaDevices.getUserMedia({
+//   audio:true,
+//   video:true
+// })
+
+// navigator.mediaDevices.ondevicechange = (event) => {
+// updateDeviceList();
+// };
+
+// const constraints = {
+//     video: {
+//       width: 160,
+//       height: 120,
+//       frameRate: 30,
+//     },
+//     audio: {
+//       sampleRate: 44100,
+//       sampleSize: 16,
+//       volume: 0.25,
+//     },
+//   };
+
+//   navigator.mediaDevices
+//     .getUserMedia(constraints)
+//     .then((stream) => {
+//       videoElement.srcObject = stream;
+//       updateDeviceList();
+//     })
+//     .catch((err) => {
+//       log(`${err.name}: ${err.message}`);
+//     });
+// function updateDeviceList() {
+// navigator.mediaDevices.enumerateDevices().then((devices) => {
+//   audioList.innerHTML = "";
+//   videoList.innerHTML = "";
+
+//   devices.forEach((device) => {
+//     const elem = document.createElement("li");
+//     const [kind, type, direction] = device.kind.match(/(\w+)(input|output)/i);
+
+//     elem.innerHTML = `<strong>${device.label}</strong> (${direction})`;
+//     if (type === "audio") {
+//       audioList.appendChild(elem);
+//     } else if (type === "video") {
+//       videoList.appendChild(elem);
+//     }
+//   });
+// });
+
+const onSendChannelStateChange = () => {
+  const readyState = sendChannel.readyState;
+  console.log(sendChannel);
+  if (readyState === "open") {
+    console.log("Data channel ready state is open - onSendChannelStateChange");
+  } else {
+    console.log(
+      "Data channel ready state is not open - onSendChannelStateChange"
+    );
+  }
+};
+
+const createPeerConnection = async () => {
+  let server = {
+    iceServers: [
+      {
+        urls: ["stun:stun1.1.google.com:19302", "stun:stun2.1.google.com:19302"],
+      },
+    ],
+  };
+    peerConnection = new RTCPeerConnection(server);
+    remoteStream = new MediaStream();
+    remoteUserVideo.srcObject = remoteStream;
+    remoteUserVideo.addEventListener("loadedmetadata", () => {
+      remoteUserVideo.play();
+      videoGrid.append(remoteUserVideo);
+    });
+    addVideoStream(myVideo, remoteStream);
+  
+    myVideoStream.getTracks().forEach((track) => {
+      peerConnection.addTrack(track, myVideoStream);
+    });
+  
+    peerConnection.ontrack = async (event) => {
+      event.streams[0].getTracks().forEach((track) => {
+        remoteStream.addTrack(track);
+      });
+    };
+  
+    remoteStream.oninactive = () => {
+      remoteStream.getTracks().forEach((track) => {
+        track.enabled = !track.enabled;
+      });
+  
+      peerConnection.close();
+    };
+    peerConnection.onicecandidate = async (e) => {
+      if (e.candidate) {
+        socket.emit("candidateSentToUser", {
+          selfSocketId: socket.id,
+          iceCandidateData: e.candidate,
+        });
+      }
+    };
+  
+    sendChannel = peerConnection.createDataChannel("sendDataChannel");
+    sendChannel.onopen = () => {
+      onSendChannelStateChange();
+    };
+  
+    peerConnection.ondatachannel = receiverChannelCallback;
+    // sendChannel.onmessage = onsendChannelMessageCallback;
+  };
+  
+const createOffer = async () => {
+  console.log('offercreate');
+  // peerConnection = new RTCPeerConnection(server);
+  createPeerConnection();
+  let offer = await peerConnection.createOffer();
+  await peerConnection.setLocalDescription(offer);
+  // socket.emit("offerSentToRemote", {
+  //   userName: user.split(" ")[0],
+  //   remoteUser: user.split(" ")[1],
+  //   offer: peerConnection.localDescription,
+  // });
+  socket.emit("offerSendToServer", {
+    selfSocketId: socket.id,
+    offer: peerConnection.localDescription,
+  });
+};
+
+
 
 //  -- Start Getting Self Video 
 navigator.mediaDevices
   .getUserMedia({
-    audio: true,
+    audio: false,
     video: true,
   })
   .then((stream) => {
     myVideoStream = stream;
-    // addVideoStream(myVideo, stream);
+    addVideoStream(myVideo, stream);
     myVideo.srcObject = stream;
     myVideo.addEventListener("loadedmetadata", () => {
       myVideo.play();
       videoGrid.append(myVideo);
     });
 
+    createOffer();
     // $.post("http://localhost:3000/get-remote-users", {
     //   omeId: omeId,
     // })
@@ -41,7 +173,6 @@ navigator.mediaDevices
     //         remoteUser = data[0]._id;
     //       }
     //     }
-    //     createOffer();
     //   })
     //   .fail((xhr, testStatus, errorThrown) => {
     //     console.log(xhr, responseText);
@@ -54,22 +185,8 @@ navigator.mediaDevices
 
 //  -- End Getting Self Video 
 
-let server = {
-  iceServers: [
-    {
-      urls: ["stun:stun1.1.google.com:19302", "stun:stun2.1.google.com:19302"],
-    },
-  ],
-};
-socket.on("connect", () => {    
-    console.log(socket.id);
-  if (socket.connected) {
-    socket.emit("userConnected", {
-      displayName: user.split(" ")[0],
-    });
-  }
-});
 
+//  -- Start Showing self video 
 const addVideoStream = (video, stream) => {
   video.srcObject = stream;
   video.addEventListener("loadedmetadata", () => {
@@ -77,10 +194,24 @@ const addVideoStream = (video, stream) => {
     videoGrid.append(video);
   });
 };
+//  -- End Showing self video 
+
+
+
+socket.on("connect", () => {    
+    console.log(socket.id);
+  if (socket.connected) {
+    // socket.emit("userConnected", {
+    //   displayName: socket.id,
+    // });
+  }
+});
+
+
 
 const createAnswer = async (data) => {
-  remoteUser = data.remoteUser;
-
+  // remoteUser = data.remoteUser;
+console.log('createAnswer');
   // peerConnection = new RTCPeerConnection(server);
   createPeerConnection();
 
@@ -89,26 +220,26 @@ const createAnswer = async (data) => {
   await peerConnection.setLocalDescription(answer);
   socket.emit("sendAnswerToUser1", {
     answer: answer,
-    sender: data.remoteUser,
-    receiver: data.userName,
+    selfSocketId: socket.id,
   });
 
-  $.ajax({
-    url: "/update-on-engagement/" + username + "",
-    type: "PUT",
-    success: function (response) {},
-  });
+  // $.ajax({
+  //   url: "/update-on-engagement/" + username + "",
+  //   type: "PUT",
+  //   success: function (response) {},
+  // });
 };
 
 const addAnswer = async (data) => {
+  console.log('addAnser');
   if (!peerConnection.currentRemoteDescription) {
     peerConnection.setRemoteDescription(data.answer);
   }
-  $.ajax({
-    url: "/update-on-engagement/" + username + "",
-    type: "PUT",
-    success: function (response) {},
-  });
+  // $.ajax({
+  //   url: "/update-on-engagement/" + username + "",
+  //   type: "PUT",
+  //   success: function (response) {},
+  // });
 };
 
 socket.on("receiveOffer", (data) => {
@@ -119,6 +250,10 @@ socket.on("receiverAnswer", (data) => {
   addAnswer(data);
 });
 
+
+socket.on("noUserFoundToConnect", (data) => {
+ console.log("noUserFoundToConnect")
+});
 socket.on("candidateReciver", (data) => {
   peerConnection.addIceCandidate(data.iceCandidateData);
 });
@@ -145,25 +280,25 @@ $.ajax({
   },
 });
 
-const fetchNextUser = (remoteUser) => {
-  $.post(
-    "http://localhost:3000/get-next-users",
-    {
-      omeID: omeID,
-      remoteUser: remoteUser,
-    },
-    function (data) {
-      console.log("Next user id is:", data);
-      if (data[0]) {
-        if (data[0]._id === remoteUser || data[0]._id === username) {
-        } else {
-          remoteUser = data[0]._id;
-        }
-        createOffer()
-      }
-    }
-  );
-};
+// const fetchNextUser = (remoteUser) => {
+//   $.post(
+//     "http://localhost:3000/get-next-users",
+//     {
+//       omeID: omeID,
+//       remoteUser: remoteUser,
+//     },
+//     function (data) {
+//       console.log("Next user id is:", data);
+//       if (data[0]) {
+//         if (data[0]._id === remoteUser || data[0]._id === username) {
+//         } else {
+//           remoteUser = data[0]._id;
+//         }
+//         createOffer()
+//       }
+//     }
+//   );
+// };
 
 
 document.querySelector(".next_chat").onclick = function () {
@@ -196,53 +331,8 @@ const closeConnection = async () => {
   });
 };
 
-const createPeerConnection = async () => {
-    peerConnection = new RTCPeerConnection(server);
-    remoteStream = new MediaStream();
-    remoteUserVideo.srcObject = remoteStream;
-    remoteUserVideo.addEventListener("loadedmetadata", () => {
-      remoteUserVideo.play();
-      videoGrid.append(remoteUserVideo);
-    });
-    // addVideoStream(myVideo, remoteStream);
-  
-    myVideoStream.getTracks().forEach((track) => {
-      peerConnection.addTrack(track, myVideoStream);
-    });
-  
-    peerConnection.ontrack = async (event) => {
-      event.streams[0].getTracks().forEach((track) => {
-        remoteStream.addTrack(track);
-      });
-    };
-  
-    remoteStream.oninactive = () => {
-      remoteStream.getTracks().forEach((track) => {
-        track.enabled = !track.enabled;
-      });
-  
-      peerConnection.close();
-    };
-    peerConnection.onicecandidate = async (e) => {
-      if (e.candidate) {
-        socket.emit("candidateSentToUser", {
-          username: user.split(" ")[0],
-          remoteUser: user.split(" ")[1],
-          iceCandidateData: e.candidate,
-        });
-      }
-    };
-  
-    sendChannel = peerConnection.createDataChannel("sendDataChannel");
-    sendChannel.onopen = () => {
-      onSendChannelStateChange();
-    };
-  
-    peerConnection.ondatachannel = receiverChannelCallback;
-    // sendChannel.onmessage = onsendChannelMessageCallback;
-  };
-  
-  const receiverChannelCallback = (event) => {
+
+  var receiverChannelCallback = (event) => {
     console.log("Receive channel callback");
     receiveChannel = event.channel;
     receiveChannel.onmessage = onReceiveChannelMessageCallback;
@@ -293,25 +383,4 @@ const createPeerConnection = async () => {
     }
   };
   
-  const onSendChannelStateChange = () => {
-    const readyState = sendChannel.readyState;
-    console.log(sendChannel);
-    if (readyState === "open") {
-      console.log("Data channel ready state is open - onSendChannelStateChange");
-    } else {
-      console.log(
-        "Data channel ready state is not open - onSendChannelStateChange"
-      );
-    }
-  };
-  let createOffer = async () => {
-    // peerConnection = new RTCPeerConnection(server);
-    createPeerConnection();
-    let offer = await peerConnection.createOffer();
-    await peerConnection.setLocalDescription(offer);
-    socket.emit("offerSentToRemote", {
-      userName: user.split(" ")[0],
-      remoteUser: user.split(" ")[1],
-      offer: peerConnection.localDescription,
-    });
-  };
+ 
