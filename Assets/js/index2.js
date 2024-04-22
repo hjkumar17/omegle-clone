@@ -4,7 +4,7 @@ const remoteUserVideo = document.getElementById("user2");
 const muteButton = document.getElementById("muteButton");
 const stopVideoButton = document.getElementById("stopVideo");
 
-myVideo.muted = true;
+// myVideo.muted = true;
 let socket = io.connect();
 let peerConnection;
 let myVideoStream;
@@ -14,6 +14,26 @@ let msgInput = document.querySelector("#chat_message");
 let msgSendButton = document.querySelector("#send");
 let msgTextArea = document.querySelector(".messages");
 
+stopVideoButton.addEventListener('click',function(){
+  myVideoStream.getTracks().forEach((track) => {
+    if(track.kind === 'video'){
+      const newValue = !track.enabled;
+      track.enabled = newValue;
+    }
+    // console.log("track",track);
+    // peerConnection.addTrack(track, myVideoStream);
+  });
+})
+muteButton.addEventListener('click',function(){
+  myVideoStream.getTracks().forEach((track) => {
+    if(track.kind === 'audio'){
+      const newValue = !track.enabled;
+      track.enabled = newValue;
+    }
+    // console.log("track",track);
+    // peerConnection.addTrack(track, myVideoStream);
+  });
+})
 
 // let mediaDevice = await  navigator.mediaDevices.getUserMedia({
 //   audio:true,
@@ -91,7 +111,7 @@ const createPeerConnection = async () => {
       remoteUserVideo.play();
       videoGrid.append(remoteUserVideo);
     });
-    addVideoStream(myVideo, remoteStream);
+    addVideoStream(remoteUserVideo, remoteStream);
   
     myVideoStream.getTracks().forEach((track) => {
       peerConnection.addTrack(track, myVideoStream);
@@ -262,23 +282,23 @@ msgSendButton.addEventListener("click", function (event) {
   sendData();
 });
 
-window.addEventListener("unload", function (event) {
-  $.ajax({
-    url: "/leaving-user-update/" + username + "",
-    type: "PUT",
-    success: function (response) {
-      alert(response);
-    },
-  });
-});
+// window.addEventListener("unload", function (event) {
+//   $.ajax({
+//     url: "/leaving-user-update/" + username + "",
+//     type: "PUT",
+//     success: function (response) {
+//       alert(response);
+//     },
+//   });
+// });
 
-$.ajax({
-  url: "/new-user-update/" + omeID + "",
-  type: "PUT",
-  success: function (response) {
-    alert(response);
-  },
-});
+// $.ajax({
+//   url: "/new-user-update/" + omeID + "",
+//   type: "PUT",
+//   success: function (response) {
+//     alert(response);
+//   },
+// });
 
 // const fetchNextUser = (remoteUser) => {
 //   $.post(
@@ -301,19 +321,19 @@ $.ajax({
 // };
 
 
-document.querySelector(".next_chat").onclick = function () {
-    msgTextArea.innerHTML = "";
-    if (
-        peerConnection.connectionState === "connected" ||
-        peerConnection.iceCandidateState === "conneccted"
-    ) {
-        closeConnection();
-        console.log("User closed");
-    } else {
-        fetchNextUser(remoteUser);
-        console.log("moving to next user");
-    }
-};
+// document.querySelector(".next_chat").onclick = function () {
+//     msgTextArea.innerHTML = "";
+//     if (
+//         peerConnection.connectionState === "connected" ||
+//         peerConnection.iceCandidateState === "conneccted"
+//     ) {
+//         closeConnection();
+//         console.log("User closed");
+//     } else {
+//         fetchNextUser(remoteUser);
+//         console.log("moving to next user");
+//     }
+// };
 
 const closeConnection = async () => {
   await peerConnection.close();
