@@ -18,8 +18,11 @@ app.set("view engine", "ejs");
 app.use("/js", express.static(path.resolve(__dirname, "Assets/js")));
 app.use("/css", express.static(path.resolve(__dirname, "Assets/css")));
 
-app.use("/", require("./Server/routes/router"));
+// app.use("/", require("./Server/routes/router"));
 
+app.get('/', function(req, res){
+  res.render("index");
+});
 const server = app.listen(PORT, () => {
   console.log(`Server started on port ${PORT}`);
 });
