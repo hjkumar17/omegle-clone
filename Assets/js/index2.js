@@ -150,7 +150,7 @@ const createOffer = async () => {
 //  -- Start Getting Self Video 
 navigator.mediaDevices
   .getUserMedia({
-    audio: false,
+    audio: true,
     video: true,
   })
   .then((stream) => {
