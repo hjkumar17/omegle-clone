@@ -14,12 +14,12 @@ const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-app.set('views', './views')
-app.set("view engine", "ejs");
-app.engine('html', require('ejs').renderFile)
+// app.set('views', './views')
+// app.set("view engine", "ejs");
+// app.engine('html', require('ejs').renderFile)
 app.use("/js", express.static(path.resolve(__dirname, "Assets/js")));
 app.use("/css", express.static(path.resolve(__dirname, "Assets/css")));
-
+app.use('/', express.static('public'))
 // app.use("/", require("./Server/routes/router"));
 
 app.get('/', function(req, res){
