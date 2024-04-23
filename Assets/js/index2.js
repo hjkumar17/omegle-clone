@@ -3,8 +3,9 @@ const myVideo = document.getElementById("user1");
 const remoteUserVideo = document.getElementById("user2");
 const muteButton = document.getElementById("muteButton");
 const stopVideoButton = document.getElementById("stopVideo");
+const micIcon = document.getElementById("micIcon");
 
-// myVideo.muted = true;
+myVideo.muted = true;
 let socket = io.connect();
 let peerConnection;
 let myVideoStream;
@@ -14,26 +15,32 @@ let msgInput = document.querySelector("#chat_message");
 let msgSendButton = document.querySelector("#send");
 let msgTextArea = document.querySelector(".messages");
 
-stopVideoButton.addEventListener('click',function(){
+stopVideoButton.addEventListener("click", function () {
   myVideoStream.getTracks().forEach((track) => {
-    if(track.kind === 'video'){
+    if (track.kind === "video") {
       const newValue = !track.enabled;
       track.enabled = newValue;
     }
     // console.log("track",track);
     // peerConnection.addTrack(track, myVideoStream);
   });
-})
-muteButton.addEventListener('click',function(){
+});
+muteButton.addEventListener("click", function () {
   myVideoStream.getTracks().forEach((track) => {
-    if(track.kind === 'audio'){
+    console.log(track);
+    if (track.kind === "audio") {
       const newValue = !track.enabled;
+      if (newValue) {
+        micIcon.classList.remove("fa-microphone-slash");
+      } else {
+        micIcon.classList.add("fa-microphone-slash");
+      }
       track.enabled = newValue;
     }
     // console.log("track",track);
     // peerConnection.addTrack(track, myVideoStream);
   });
-})
+});
 
 // let mediaDevice = await  navigator.mediaDevices.getUserMedia({
 //   audio:true,
@@ -100,56 +107,59 @@ const createPeerConnection = async () => {
   let server = {
     iceServers: [
       {
-        urls: ["stun:stun1.1.google.com:19302", "stun:stun2.1.google.com:19302"],
+        urls: [
+          "stun:stun1.1.google.com:19302",
+          "stun:stun2.1.google.com:19302",
+        ],
       },
     ],
   };
-    peerConnection = new RTCPeerConnection(server);
-    remoteStream = new MediaStream();
-    remoteUserVideo.srcObject = remoteStream;
-    remoteUserVideo.addEventListener("loadedmetadata", () => {
-      remoteUserVideo.play();
-      videoGrid.append(remoteUserVideo);
+  peerConnection = new RTCPeerConnection(server);
+  remoteStream = new MediaStream();
+  remoteUserVideo.srcObject = remoteStream;
+  remoteUserVideo.addEventListener("loadedmetadata", () => {
+    remoteUserVideo.play();
+    videoGrid.append(remoteUserVideo);
+  });
+  addVideoStream(remoteUserVideo, remoteStream);
+
+  myVideoStream.getTracks().forEach((track) => {
+    peerConnection.addTrack(track, myVideoStream);
+  });
+
+  peerConnection.ontrack = async (event) => {
+    event.streams[0].getTracks().forEach((track) => {
+      remoteStream.addTrack(track);
     });
-    addVideoStream(remoteUserVideo, remoteStream);
-  
-    myVideoStream.getTracks().forEach((track) => {
-      peerConnection.addTrack(track, myVideoStream);
-    });
-  
-    peerConnection.ontrack = async (event) => {
-      event.streams[0].getTracks().forEach((track) => {
-        remoteStream.addTrack(track);
-      });
-    };
-  
-    remoteStream.oninactive = () => {
-      remoteStream.getTracks().forEach((track) => {
-        track.enabled = !track.enabled;
-      });
-  
-      peerConnection.close();
-    };
-    peerConnection.onicecandidate = async (e) => {
-      if (e.candidate) {
-        socket.emit("candidateSentToUser", {
-          selfSocketId: socket.id,
-          iceCandidateData: e.candidate,
-        });
-      }
-    };
-  
-    sendChannel = peerConnection.createDataChannel("sendDataChannel");
-    sendChannel.onopen = () => {
-      onSendChannelStateChange();
-    };
-  
-    peerConnection.ondatachannel = receiverChannelCallback;
-    // sendChannel.onmessage = onsendChannelMessageCallback;
   };
-  
+
+  remoteStream.oninactive = () => {
+    remoteStream.getTracks().forEach((track) => {
+      track.enabled = !track.enabled;
+    });
+
+    peerConnection.close();
+  };
+  peerConnection.onicecandidate = async (e) => {
+    if (e.candidate) {
+      socket.emit("candidateSentToUser", {
+        selfSocketId: socket.id,
+        iceCandidateData: e.candidate,
+      });
+    }
+  };
+
+  sendChannel = peerConnection.createDataChannel("sendDataChannel");
+  sendChannel.onopen = () => {
+    onSendChannelStateChange();
+  };
+
+  peerConnection.ondatachannel = receiverChannelCallback;
+  // sendChannel.onmessage = onsendChannelMessageCallback;
+};
+
 const createOffer = async () => {
-  console.log('offercreate');
+  console.log("offercreate");
   // peerConnection = new RTCPeerConnection(server);
   createPeerConnection();
   let offer = await peerConnection.createOffer();
@@ -165,9 +175,7 @@ const createOffer = async () => {
   });
 };
 
-
-
-//  -- Start Getting Self Video 
+//  -- Start Getting Self Video
 navigator.mediaDevices
   .getUserMedia({
     audio: true,
@@ -203,10 +211,9 @@ navigator.mediaDevices
     // });
   });
 
-//  -- End Getting Self Video 
+//  -- End Getting Self Video
 
-
-//  -- Start Showing self video 
+//  -- Start Showing self video
 const addVideoStream = (video, stream) => {
   video.srcObject = stream;
   video.addEventListener("loadedmetadata", () => {
@@ -214,12 +221,10 @@ const addVideoStream = (video, stream) => {
     videoGrid.append(video);
   });
 };
-//  -- End Showing self video 
+//  -- End Showing self video
 
-
-
-socket.on("connect", () => {    
-    console.log(socket.id);
+socket.on("connect", () => {
+  console.log(socket.id);
   if (socket.connected) {
     // socket.emit("userConnected", {
     //   displayName: socket.id,
@@ -227,11 +232,9 @@ socket.on("connect", () => {
   }
 });
 
-
-
 const createAnswer = async (data) => {
   // remoteUser = data.remoteUser;
-console.log('createAnswer');
+  console.log("createAnswer");
   // peerConnection = new RTCPeerConnection(server);
   createPeerConnection();
 
@@ -251,7 +254,7 @@ console.log('createAnswer');
 };
 
 const addAnswer = async (data) => {
-  console.log('addAnser');
+  console.log("addAnser");
   if (!peerConnection.currentRemoteDescription) {
     peerConnection.setRemoteDescription(data.answer);
   }
@@ -270,9 +273,8 @@ socket.on("receiverAnswer", (data) => {
   addAnswer(data);
 });
 
-
 socket.on("noUserFoundToConnect", (data) => {
- console.log("noUserFoundToConnect")
+  console.log("noUserFoundToConnect");
 });
 socket.on("candidateReciver", (data) => {
   peerConnection.addIceCandidate(data.iceCandidateData);
@@ -320,7 +322,6 @@ msgSendButton.addEventListener("click", function (event) {
 //   );
 // };
 
-
 // document.querySelector(".next_chat").onclick = function () {
 //     msgTextArea.innerHTML = "";
 //     if (
@@ -351,56 +352,53 @@ const closeConnection = async () => {
   });
 };
 
+var receiverChannelCallback = (event) => {
+  console.log("Receive channel callback");
+  receiveChannel = event.channel;
+  receiveChannel.onmessage = onReceiveChannelMessageCallback;
+  receiveChannel.onopen = onReceiveChannelStateChange;
+  receiveChannel.onclose = onReceiveChannelStateChange;
+};
 
-  var receiverChannelCallback = (event) => {
-    console.log("Receive channel callback");
-    receiveChannel = event.channel;
-    receiveChannel.onmessage = onReceiveChannelMessageCallback;
-    receiveChannel.onopen = onReceiveChannelStateChange;
-    receiveChannel.onclose = onReceiveChannelStateChange;
-  };
-  
-  const onReceiveChannelStateChange = () => {
-    const readyState = receiveChannel.readyState;
-    if (readyState === "open") {
-      console.log(
-        "Data channel ready state is open - onReceiveChannelStateChange"
-      );
-    } else {
-      console.log(
-        "Data channel ready state is not open - onReceiveChannelStateChange"
-      );
-    }
-  };
-  
-  const onReceiveChannelMessageCallback = (event) => {
-    console.log("Received message");
-    msgTextArea.innerHTML += `
+const onReceiveChannelStateChange = () => {
+  const readyState = receiveChannel.readyState;
+  if (readyState === "open") {
+    console.log(
+      "Data channel ready state is open - onReceiveChannelStateChange"
+    );
+  } else {
+    console.log(
+      "Data channel ready state is not open - onReceiveChannelStateChange"
+    );
+  }
+};
+
+const onReceiveChannelMessageCallback = (event) => {
+  console.log("Received message");
+  msgTextArea.innerHTML += `
     <div style='margin-top:2px; margin-bottom:2px; color:white'>
     <b>
     Stranger:
     </b>
     ${event.data}
     </div>`;
-  };
-  
-  const sendData = () => {
-    const data = msgInput.value;
-    msgTextArea.innerHTML += `
+};
+
+const sendData = () => {
+  const data = msgInput.value;
+  msgTextArea.innerHTML += `
     <div style='margin-top:2px; margin-bottom:2px; color:white'>
     <b>
     Me:
     </b>
     ${data}
     </div>`;
-    if (sendChannel) {
-      onSendChannelStateChange();
-      sendChannel.send(data);
-      msgInput.value = "";
-    } else {
-      receiveChannel.send(data);
-      msgInput.value = "";
-    }
-  };
-  
- 
+  if (sendChannel) {
+    onSendChannelStateChange();
+    sendChannel.send(data);
+    msgInput.value = "";
+  } else {
+    receiveChannel.send(data);
+    msgInput.value = "";
+  }
+};
