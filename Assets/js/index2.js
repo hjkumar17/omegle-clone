@@ -27,7 +27,6 @@ stopVideoButton.addEventListener("click", function () {
 });
 muteButton.addEventListener("click", function () {
   myVideoStream.getTracks().forEach((track) => {
-    console.log(track);
     if (track.kind === "audio") {
       const newValue = !track.enabled;
       if (newValue) {
@@ -119,7 +118,7 @@ const createPeerConnection = async () => {
   remoteUserVideo.srcObject = remoteStream;
   remoteUserVideo.addEventListener("loadedmetadata", () => {
     remoteUserVideo.play();
-    videoGrid.append(remoteUserVideo);
+    // videoGrid.append(remoteUserVideo);
   });
   addVideoStream(remoteUserVideo, remoteStream);
 
@@ -140,6 +139,13 @@ const createPeerConnection = async () => {
 
     peerConnection.close();
   };
+  // peerConnection.onconnectionstatechange = (event)=>{
+  //   if(peerConnection.connectionState === 'closed'){
+  //     peerConnection.close();
+  //   }
+  //   console.log('onconnectionstatechange',peerConnection.connectionState,event.target)
+  
+  // }
   peerConnection.onicecandidate = async (e) => {
     if (e.candidate) {
       socket.emit("candidateSentToUser", {
@@ -152,6 +158,12 @@ const createPeerConnection = async () => {
   sendChannel = peerConnection.createDataChannel("sendDataChannel");
   sendChannel.onopen = () => {
     onSendChannelStateChange();
+  };
+  sendChannel.onclose = () => {
+    onSendChannelStateChange();
+    peerConnection.close();
+    removeVideoStream('remoteUser')
+
   };
 
   peerConnection.ondatachannel = receiverChannelCallback;
@@ -183,12 +195,13 @@ navigator.mediaDevices
   })
   .then((stream) => {
     myVideoStream = stream;
+    
     addVideoStream(myVideo, stream);
-    myVideo.srcObject = stream;
-    myVideo.addEventListener("loadedmetadata", () => {
-      myVideo.play();
-      videoGrid.append(myVideo);
-    });
+    // myVideo.srcObject = stream;
+    // myVideo.addEventListener("loadedmetadata", () => {
+    //   myVideo.play();
+    //   videoGrid.append(myVideo);
+    // });
 
     createOffer();
     // $.post("http://localhost:3000/get-remote-users", {
@@ -218,9 +231,19 @@ const addVideoStream = (video, stream) => {
   video.srcObject = stream;
   video.addEventListener("loadedmetadata", () => {
     video.play();
-    videoGrid.append(video);
+    // videoGrid.append(video);
   });
 };
+const removeVideoStream = ()=>{
+  console.log(remoteStream)
+remoteUserVideo.srcObject = null
+  remoteStream.addEventListener("suspend", () => {
+  console.log('remotestreamsuspend')
+
+    video.pause();
+    // videoGrid.append(video);
+  });
+}
 //  -- End Showing self video
 
 socket.on("connect", () => {
@@ -336,6 +359,7 @@ msgSendButton.addEventListener("click", function (event) {
 //     }
 // };
 
+
 const closeConnection = async () => {
   await peerConnection.close();
   await socket.emit("remoteUserClosed", {
@@ -343,13 +367,13 @@ const closeConnection = async () => {
     remoteUser: remoteUser,
   });
 
-  $.ajax({
-    url: "/update-on-next/" + username + "",
-    type: "PUT",
-    success: function (response) {
-      fetchNextUser(remoteUser);
-    },
-  });
+  // $.ajax({
+  //   url: "/update-on-next/" + username + "",
+  //   type: "PUT",
+  //   success: function (response) {
+  //     fetchNextUser(remoteUser);
+  //   },
+  // });
 };
 
 var receiverChannelCallback = (event) => {
