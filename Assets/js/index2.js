@@ -270,6 +270,18 @@ navigator.mediaDevices
     // socket.on("user-connected", (userId) => {
     //   connectToNewUser(userId, stream);
     // });
+  }).catch(error=>{
+    console.error('Error accessing media devices:', error);
+    
+    // Check the error to determine the reason for denial
+    if (error.name === 'NotAllowedError' || error.name === 'NotFoundError') {
+      console.log('Permission denied by the user or no media devices available.');
+    } else if (error.name === 'NotReadableError' || error.name === 'OverconstrainedError') {
+      console.log('Media devices are not readable due to hardware or constraints.');
+    } else {
+      console.log('Unknown error occurred:', error.name);
+    }
+    alert("Please check your media devices permission")
   });
 
 //  -- End Getting Self Video
