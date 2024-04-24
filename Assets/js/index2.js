@@ -30,22 +30,21 @@ stopVideoButton.addEventListener("click", function () {
   });
 });
 muteButton.addEventListener("click", function () {
-  if (availableAudioInputs.length){
-
+  if (availableAudioInputs.length) {
   }
-    myVideoStream.getTracks().forEach((track) => {
-      if (track.kind === "audio") {
-        const newValue = !track.enabled;
-        if (newValue) {
-          micIcon.classList.remove("fa-microphone-slash");
-        } else {
-          micIcon.classList.add("fa-microphone-slash");
-        }
-        track.enabled = newValue;
+  myVideoStream.getTracks().forEach((track) => {
+    if (track.kind === "audio") {
+      const newValue = !track.enabled;
+      if (newValue) {
+        micIcon.classList.remove("fa-microphone-slash");
+      } else {
+        micIcon.classList.add("fa-microphone-slash");
       }
-      // console.log("track",track);
-      // peerConnection.addTrack(track, myVideoStream);
-    });
+      track.enabled = newValue;
+    }
+    // console.log("track",track);
+    // peerConnection.addTrack(track, myVideoStream);
+  });
 });
 
 const updateDeviceList = () => {
@@ -66,8 +65,9 @@ const updateDeviceList = () => {
       console.log(availableAudioOutputs);
 
       devices.forEach((device) => {
-        const [kind, type, direction] = device.kind.match(/(\w+)(input|output)/i);
-        console.log(kind,type,direction);
+        const [kind, type, direction] =
+          device.kind.match(/(\w+)(input|output)/i);
+        console.log(kind, type, direction);
         // elem.innerHTML = `<strong>${device.label}</strong> (${direction})`;
         // if (type === "audio") {
         //   audioList.appendChild(elem);
@@ -88,7 +88,6 @@ navigator.mediaDevices.ondevicechange = (event) => {
 };
 
 updateDeviceList();
-
 
 // let mediaDevice = await  navigator.mediaDevices.getUserMedia({
 //   audio:true,
@@ -270,18 +269,26 @@ navigator.mediaDevices
     // socket.on("user-connected", (userId) => {
     //   connectToNewUser(userId, stream);
     // });
-  }).catch(error=>{
-    console.error('Error accessing media devices:', error);
-    
+  })
+  .catch((error) => {
+    console.error("Error accessing media devices:", error);
+
     // Check the error to determine the reason for denial
-    if (error.name === 'NotAllowedError' || error.name === 'NotFoundError') {
-      console.log('Permission denied by the user or no media devices available.');
-    } else if (error.name === 'NotReadableError' || error.name === 'OverconstrainedError') {
-      console.log('Media devices are not readable due to hardware or constraints.');
+    if (error.name === "NotAllowedError" || error.name === "NotFoundError") {
+      console.log(
+        "Permission denied by the user or no media devices available."
+      );
+    } else if (
+      error.name === "NotReadableError" ||
+      error.name === "OverconstrainedError"
+    ) {
+      console.log(
+        "Media devices are not readable due to hardware or constraints."
+      );
     } else {
-      console.log('Unknown error occurred:', error.name);
+      console.log("Unknown error occurred:", error.name);
     }
-    alert("Please check your media devices permission")
+    alert("Please check your media devices permission");
   });
 
 //  -- End Getting Self Video
@@ -297,6 +304,9 @@ const addVideoStream = (video, stream) => {
 const removeVideoStream = () => {
   console.log(remoteStream);
   remoteUserVideo.srcObject = null;
+
+  msgInput.value = "";
+  msgTextArea.innerHTML = "";
   remoteStream.addEventListener("suspend", () => {
     console.log("remotestreamsuspend");
 
@@ -446,6 +456,8 @@ var receiverChannelCallback = (event) => {
 const onReceiveChannelStateChange = () => {
   const readyState = receiveChannel.readyState;
   if (readyState === "open") {
+    msgInput.value = "";
+  msgTextArea.innerHTML = "";
     console.log(
       "Data channel ready state is open - onReceiveChannelStateChange"
     );
