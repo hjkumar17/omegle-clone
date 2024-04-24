@@ -4,6 +4,11 @@ const remoteUserVideo = document.getElementById("user2");
 const muteButton = document.getElementById("muteButton");
 const stopVideoButton = document.getElementById("stopVideo");
 const micIcon = document.getElementById("micIcon");
+const speakerIcon = document.getElementById("speakerIcon");
+
+let msgInput = document.querySelector("#chat_message");
+let msgSendButton = document.querySelector("#send");
+let msgTextArea = document.querySelector(".messages");
 
 myVideo.muted = true;
 let socket = io.connect();
@@ -11,9 +16,8 @@ let peerConnection;
 let myVideoStream;
 let remoteStream;
 let sendChannel;
-let msgInput = document.querySelector("#chat_message");
-let msgSendButton = document.querySelector("#send");
-let msgTextArea = document.querySelector(".messages");
+let availableAudioInputs;
+let availableAudioOutputs;
 
 stopVideoButton.addEventListener("click", function () {
   myVideoStream.getTracks().forEach((track) => {
@@ -26,20 +30,65 @@ stopVideoButton.addEventListener("click", function () {
   });
 });
 muteButton.addEventListener("click", function () {
-  myVideoStream.getTracks().forEach((track) => {
-    if (track.kind === "audio") {
-      const newValue = !track.enabled;
-      if (newValue) {
-        micIcon.classList.remove("fa-microphone-slash");
-      } else {
-        micIcon.classList.add("fa-microphone-slash");
+  if (availableAudioInputs.length){
+
+  }
+    myVideoStream.getTracks().forEach((track) => {
+      if (track.kind === "audio") {
+        const newValue = !track.enabled;
+        if (newValue) {
+          micIcon.classList.remove("fa-microphone-slash");
+        } else {
+          micIcon.classList.add("fa-microphone-slash");
+        }
+        track.enabled = newValue;
       }
-      track.enabled = newValue;
-    }
-    // console.log("track",track);
-    // peerConnection.addTrack(track, myVideoStream);
-  });
+      // console.log("track",track);
+      // peerConnection.addTrack(track, myVideoStream);
+    });
 });
+
+const updateDeviceList = () => {
+  navigator.mediaDevices
+    .enumerateDevices()
+    .then((devices) => {
+      availableAudioInputs = devices.filter(
+        (device) => device.kind === "audioinput"
+      );
+      console.log(availableAudioInputs);
+      // const selectedDevice = audioInputDevices[0].deviceId; // Select the first audio input device
+      // const constraints = {
+      //   audio: { deviceId: { exact: selectedDevice } }
+      // };
+      availableAudioOutputs = devices.filter(
+        (device) => device.kind === "audiooutput"
+      );
+      console.log(availableAudioOutputs);
+
+      devices.forEach((device) => {
+        const [kind, type, direction] = device.kind.match(/(\w+)(input|output)/i);
+        console.log(kind,type,direction);
+        // elem.innerHTML = `<strong>${device.label}</strong> (${direction})`;
+        // if (type === "audio") {
+        //   audioList.appendChild(elem);
+        // } else if (type === "video") {
+        //   videoList.appendChild(elem);
+        // }
+      });
+      // const selectedDeviceo = audioOutputDevices[0].deviceId; // Select the first audio output device
+      // console.log(audioOutputDevices)
+    })
+    .catch((error) => {
+      console.error("Error enumerating devices:", error);
+    });
+};
+
+navigator.mediaDevices.ondevicechange = (event) => {
+  updateDeviceList();
+};
+
+updateDeviceList();
+
 
 // let mediaDevice = await  navigator.mediaDevices.getUserMedia({
 //   audio:true,
@@ -144,7 +193,7 @@ const createPeerConnection = async () => {
   //     peerConnection.close();
   //   }
   //   console.log('onconnectionstatechange',peerConnection.connectionState,event.target)
-  
+
   // }
   peerConnection.onicecandidate = async (e) => {
     if (e.candidate) {
@@ -162,8 +211,7 @@ const createPeerConnection = async () => {
   sendChannel.onclose = () => {
     onSendChannelStateChange();
     peerConnection.close();
-    removeVideoStream('remoteUser')
-
+    removeVideoStream("remoteUser");
   };
 
   peerConnection.ondatachannel = receiverChannelCallback;
@@ -195,7 +243,7 @@ navigator.mediaDevices
   })
   .then((stream) => {
     myVideoStream = stream;
-    
+
     addVideoStream(myVideo, stream);
     // myVideo.srcObject = stream;
     // myVideo.addEventListener("loadedmetadata", () => {
@@ -234,16 +282,16 @@ const addVideoStream = (video, stream) => {
     // videoGrid.append(video);
   });
 };
-const removeVideoStream = ()=>{
-  console.log(remoteStream)
-remoteUserVideo.srcObject = null
+const removeVideoStream = () => {
+  console.log(remoteStream);
+  remoteUserVideo.srcObject = null;
   remoteStream.addEventListener("suspend", () => {
-  console.log('remotestreamsuspend')
+    console.log("remotestreamsuspend");
 
     video.pause();
     // videoGrid.append(video);
   });
-}
+};
 //  -- End Showing self video
 
 socket.on("connect", () => {
@@ -358,7 +406,6 @@ msgSendButton.addEventListener("click", function (event) {
 //         console.log("moving to next user");
 //     }
 // };
-
 
 const closeConnection = async () => {
   await peerConnection.close();
