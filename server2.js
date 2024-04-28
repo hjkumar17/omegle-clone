@@ -19,10 +19,10 @@ app.use(bodyParser.json());
 // app.engine('html', require('ejs').renderFile)
 app.use("/js", express.static(path.resolve(__dirname, "Assets/js")));
 app.use("/css", express.static(path.resolve(__dirname, "Assets/css")));
-app.use('/', express.static('public'))
+app.use("/", express.static("public"));
 // app.use("/", require("./Server/routes/router"));
 
-app.get('/', function(req, res){
+app.get("/", function (req, res) {
   res.render("index");
 });
 const server = app.listen(PORT, () => {
@@ -36,28 +36,11 @@ const io = require("socket.io")(server, {
 let userConnections = [];
 
 io.on("connection", (socket) => {
-    userConnections.push({
-      connectionId: socket.id,
-    });
-    console.log("userConnections",userConnections);
-//   socket.on("connection", (socket) => {
-//   });
-  // console.log("socket id is", socket);
-    // socket.on("userConnected", (data) => {
-    //   userConnections.push({
-    //     connectionId: socket.id,
-    //   });
-    // });
+  userConnections.push({
+    connectionId: socket.id,
+  });
+  console.log("userConnections", userConnections);
 
-  // socket.on("offerSentToRemote", (data) => {
-  //   let offerReceiver = userConnections.find(
-  //     (users) => users.userId === data.remoteUser
-  //   );
-
-  //   if (offerReceiver) {
-  //     socket.to(offerReceiver.connectionId).emit("receiveOffer", data);
-  //   }
-  // });
   socket.on("offerSendToServer", (data) => {
     // console.log(data);
     let receiverSocketId = userConnections.find(
@@ -66,8 +49,8 @@ io.on("connection", (socket) => {
 
     if (receiverSocketId) {
       socket.to(receiverSocketId.connectionId).emit("receiveOffer", data);
-    }else{
-      socket.to(data.selfSocketId).emit('noUserFoundToConnect')
+    } else {
+      socket.to(data.selfSocketId).emit("noUserFoundToConnect");
     }
   });
 
@@ -85,7 +68,7 @@ io.on("connection", (socket) => {
     let candidateReciver = userConnections.find(
       (users) => users.connectionId !== data.selfSocketId
     );
-console.log(candidateReciver);
+    console.log(candidateReciver);
     if (candidateReciver) {
       socket.to(candidateReciver.connectionId).emit("candidateReciver", data);
     }
@@ -100,8 +83,8 @@ console.log(candidateReciver);
         (user) => user.connectionId !== socket.id
       );
     }
-    console.log("user disconnect",socket.id);
-    console.log("userConnections",userConnections);
+    console.log("user disconnect", socket.id);
+    console.log("userConnections", userConnections);
   });
   socket.on("remoteUserClosed", (data) => {
     let closedUser = userConnections.find(

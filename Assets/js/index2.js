@@ -25,10 +25,9 @@ stopVideoButton.addEventListener("click", function () {
       const newValue = !track.enabled;
       track.enabled = newValue;
     }
-    // console.log("track",track);
-    // peerConnection.addTrack(track, myVideoStream);
   });
 });
+
 muteButton.addEventListener("click", function () {
   if (availableAudioInputs.length) {
   }
@@ -42,8 +41,6 @@ muteButton.addEventListener("click", function () {
       }
       track.enabled = newValue;
     }
-    // console.log("track",track);
-    // peerConnection.addTrack(track, myVideoStream);
   });
 });
 
@@ -54,29 +51,15 @@ const updateDeviceList = () => {
       availableAudioInputs = devices.filter(
         (device) => device.kind === "audioinput"
       );
-      console.log(availableAudioInputs);
-      // const selectedDevice = audioInputDevices[0].deviceId; // Select the first audio input device
-      // const constraints = {
-      //   audio: { deviceId: { exact: selectedDevice } }
-      // };
       availableAudioOutputs = devices.filter(
         (device) => device.kind === "audiooutput"
       );
-      console.log(availableAudioOutputs);
 
       devices.forEach((device) => {
         const [kind, type, direction] =
           device.kind.match(/(\w+)(input|output)/i);
         console.log(kind, type, direction);
-        // elem.innerHTML = `<strong>${device.label}</strong> (${direction})`;
-        // if (type === "audio") {
-        //   audioList.appendChild(elem);
-        // } else if (type === "video") {
-        //   videoList.appendChild(elem);
-        // }
       });
-      // const selectedDeviceo = audioOutputDevices[0].deviceId; // Select the first audio output device
-      // console.log(audioOutputDevices)
     })
     .catch((error) => {
       console.error("Error enumerating devices:", error);
@@ -88,55 +71,6 @@ navigator.mediaDevices.ondevicechange = (event) => {
 };
 
 updateDeviceList();
-
-// let mediaDevice = await  navigator.mediaDevices.getUserMedia({
-//   audio:true,
-//   video:true
-// })
-
-// navigator.mediaDevices.ondevicechange = (event) => {
-// updateDeviceList();
-// };
-
-// const constraints = {
-//     video: {
-//       width: 160,
-//       height: 120,
-//       frameRate: 30,
-//     },
-//     audio: {
-//       sampleRate: 44100,
-//       sampleSize: 16,
-//       volume: 0.25,
-//     },
-//   };
-
-//   navigator.mediaDevices
-//     .getUserMedia(constraints)
-//     .then((stream) => {
-//       videoElement.srcObject = stream;
-//       updateDeviceList();
-//     })
-//     .catch((err) => {
-//       log(`${err.name}: ${err.message}`);
-//     });
-// function updateDeviceList() {
-// navigator.mediaDevices.enumerateDevices().then((devices) => {
-//   audioList.innerHTML = "";
-//   videoList.innerHTML = "";
-
-//   devices.forEach((device) => {
-//     const elem = document.createElement("li");
-//     const [kind, type, direction] = device.kind.match(/(\w+)(input|output)/i);
-
-//     elem.innerHTML = `<strong>${device.label}</strong> (${direction})`;
-//     if (type === "audio") {
-//       audioList.appendChild(elem);
-//     } else if (type === "video") {
-//       videoList.appendChild(elem);
-//     }
-//   });
-// });
 
 const onSendChannelStateChange = () => {
   const readyState = sendChannel.readyState;
@@ -166,7 +100,6 @@ const createPeerConnection = async () => {
   remoteUserVideo.srcObject = remoteStream;
   remoteUserVideo.addEventListener("loadedmetadata", () => {
     remoteUserVideo.play();
-    // videoGrid.append(remoteUserVideo);
   });
   addVideoStream(remoteUserVideo, remoteStream);
 
@@ -187,13 +120,7 @@ const createPeerConnection = async () => {
 
     peerConnection.close();
   };
-  // peerConnection.onconnectionstatechange = (event)=>{
-  //   if(peerConnection.connectionState === 'closed'){
-  //     peerConnection.close();
-  //   }
-  //   console.log('onconnectionstatechange',peerConnection.connectionState,event.target)
 
-  // }
   peerConnection.onicecandidate = async (e) => {
     if (e.candidate) {
       socket.emit("candidateSentToUser", {
@@ -214,20 +141,13 @@ const createPeerConnection = async () => {
   };
 
   peerConnection.ondatachannel = receiverChannelCallback;
-  // sendChannel.onmessage = onsendChannelMessageCallback;
 };
 
 const createOffer = async () => {
-  console.log("offercreate");
-  // peerConnection = new RTCPeerConnection(server);
   createPeerConnection();
   let offer = await peerConnection.createOffer();
   await peerConnection.setLocalDescription(offer);
-  // socket.emit("offerSentToRemote", {
-  //   userName: user.split(" ")[0],
-  //   remoteUser: user.split(" ")[1],
-  //   offer: peerConnection.localDescription,
-  // });
+
   socket.emit("offerSendToServer", {
     selfSocketId: socket.id,
     offer: peerConnection.localDescription,
@@ -244,31 +164,8 @@ navigator.mediaDevices
     myVideoStream = stream;
 
     addVideoStream(myVideo, stream);
-    // myVideo.srcObject = stream;
-    // myVideo.addEventListener("loadedmetadata", () => {
-    //   myVideo.play();
-    //   videoGrid.append(myVideo);
-    // });
 
     createOffer();
-    // $.post("http://localhost:3000/get-remote-users", {
-    //   omeId: omeId,
-    // })
-    //   .done((data) => {
-    //     if (data[0]) {
-    //       if (data[0]._id === remoteUser || data[0]._id === username) {
-    //       } else {
-    //         remoteUser = data[0]._id;
-    //       }
-    //     }
-    //   })
-    //   .fail((xhr, testStatus, errorThrown) => {
-    //     console.log(xhr, responseText);
-    //   });
-
-    // socket.on("user-connected", (userId) => {
-    //   connectToNewUser(userId, stream);
-    // });
   })
   .catch((error) => {
     console.error("Error accessing media devices:", error);
@@ -302,7 +199,6 @@ const addVideoStream = (video, stream) => {
   });
 };
 const removeVideoStream = () => {
-  console.log(remoteStream);
   remoteUserVideo.srcObject = null;
 
   msgInput.value = "";
@@ -311,7 +207,6 @@ const removeVideoStream = () => {
     console.log("remotestreamsuspend");
 
     video.pause();
-    // videoGrid.append(video);
   });
 };
 //  -- End Showing self video
@@ -319,9 +214,6 @@ const removeVideoStream = () => {
 socket.on("connect", () => {
   console.log(socket.id);
   if (socket.connected) {
-    // socket.emit("userConnected", {
-    //   displayName: socket.id,
-    // });
   }
 });
 
@@ -338,12 +230,6 @@ const createAnswer = async (data) => {
     answer: answer,
     selfSocketId: socket.id,
   });
-
-  // $.ajax({
-  //   url: "/update-on-engagement/" + username + "",
-  //   type: "PUT",
-  //   success: function (response) {},
-  // });
 };
 
 const addAnswer = async (data) => {
@@ -351,11 +237,7 @@ const addAnswer = async (data) => {
   if (!peerConnection.currentRemoteDescription) {
     peerConnection.setRemoteDescription(data.answer);
   }
-  // $.ajax({
-  //   url: "/update-on-engagement/" + username + "",
-  //   type: "PUT",
-  //   success: function (response) {},
-  // });
+
 };
 
 socket.on("receiveOffer", (data) => {
@@ -377,57 +259,6 @@ msgSendButton.addEventListener("click", function (event) {
   sendData();
 });
 
-// window.addEventListener("unload", function (event) {
-//   $.ajax({
-//     url: "/leaving-user-update/" + username + "",
-//     type: "PUT",
-//     success: function (response) {
-//       alert(response);
-//     },
-//   });
-// });
-
-// $.ajax({
-//   url: "/new-user-update/" + omeID + "",
-//   type: "PUT",
-//   success: function (response) {
-//     alert(response);
-//   },
-// });
-
-// const fetchNextUser = (remoteUser) => {
-//   $.post(
-//     "http://localhost:3000/get-next-users",
-//     {
-//       omeID: omeID,
-//       remoteUser: remoteUser,
-//     },
-//     function (data) {
-//       console.log("Next user id is:", data);
-//       if (data[0]) {
-//         if (data[0]._id === remoteUser || data[0]._id === username) {
-//         } else {
-//           remoteUser = data[0]._id;
-//         }
-//         createOffer()
-//       }
-//     }
-//   );
-// };
-
-// document.querySelector(".next_chat").onclick = function () {
-//     msgTextArea.innerHTML = "";
-//     if (
-//         peerConnection.connectionState === "connected" ||
-//         peerConnection.iceCandidateState === "conneccted"
-//     ) {
-//         closeConnection();
-//         console.log("User closed");
-//     } else {
-//         fetchNextUser(remoteUser);
-//         console.log("moving to next user");
-//     }
-// };
 
 const closeConnection = async () => {
   await peerConnection.close();
@@ -436,13 +267,6 @@ const closeConnection = async () => {
     remoteUser: remoteUser,
   });
 
-  // $.ajax({
-  //   url: "/update-on-next/" + username + "",
-  //   type: "PUT",
-  //   success: function (response) {
-  //     fetchNextUser(remoteUser);
-  //   },
-  // });
 };
 
 var receiverChannelCallback = (event) => {
@@ -457,7 +281,7 @@ const onReceiveChannelStateChange = () => {
   const readyState = receiveChannel.readyState;
   if (readyState === "open") {
     msgInput.value = "";
-  msgTextArea.innerHTML = "";
+    msgTextArea.innerHTML = "";
     console.log(
       "Data channel ready state is open - onReceiveChannelStateChange"
     );
