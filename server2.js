@@ -34,6 +34,27 @@ const io = require("socket.io")(server, {
 });
 
 let userConnections = [];
+/* userData =  {
+ gender: M/F,
+ranking: 1200 (base rank),
+introFileLink:'',
+feedbackData:{
+  reportedBy: (Number of users reproted this ),
+},
+callStreak: ( Number how many 2 mins call ),
+
+}
+
+
+============ Matching Logic ==============
+
+let usersTryingToConnect = [];
+
+
+
+
+
+*/
 
 io.on("connection", (socket) => {
   userConnections.push({
