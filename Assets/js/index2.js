@@ -5,6 +5,7 @@ const muteButton = document.getElementById("muteButton");
 const stopVideoButton = document.getElementById("stopVideo");
 const micIcon = document.getElementById("micIcon");
 const speakerIcon = document.getElementById("speakerIcon");
+const startBtn = document.querySelector("#startBtn");
 
 let msgInput = document.querySelector("#chat_message");
 let msgSendButton = document.querySelector("#send");
@@ -165,7 +166,7 @@ navigator.mediaDevices
 
     addVideoStream(myVideo, stream);
 
-    createOffer();
+    // createOffer();
   })
   .catch((error) => {
     console.error("Error accessing media devices:", error);
@@ -229,6 +230,7 @@ const createAnswer = async (data) => {
   socket.emit("sendAnswerToUser1", {
     answer: answer,
     selfSocketId: socket.id,
+    receiverSocketId:data.receiverSocketId
   });
 };
 
@@ -259,6 +261,11 @@ msgSendButton.addEventListener("click", function (event) {
   sendData();
 });
 
+startBtn.addEventListener('click',function(e){
+  // start first call
+  createOffer()
+})
+
 
 const closeConnection = async () => {
   await peerConnection.close();
@@ -269,7 +276,7 @@ const closeConnection = async () => {
 
 };
 
-var receiverChannelCallback = (event) => {
+const receiverChannelCallback = (event) => {
   console.log("Receive channel callback");
   receiveChannel = event.channel;
   receiveChannel.onmessage = onReceiveChannelMessageCallback;

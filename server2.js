@@ -34,27 +34,36 @@ const io = require("socket.io")(server, {
 });
 
 let userConnections = [];
-/* userData =  {
- gender: M/F,
-ranking: 1200 (base rank),
-introFileLink:'',
-feedbackData:{
-  reportedBy: (Number of users reproted this ),
-},
-callStreak: ( Number how many 2 mins call ),
+//  userData =  {
+//  gender: M/F,
+// ranking: 1200 (base rank),
+// introFileLink:'',
+// feedbackData:{
+//   reportedBy: (Number of users reproted this ),
+// },
+// callStreak: ( Number how many 2 mins call ),
 
-}
+// }
 
 
-============ Matching Logic ==============
+// ============ Matching Logic ==============
 
 let usersTryingToConnect = [];
 
 
 
+const  findOtherUserToConnect = (data)=>{
+  let receiverSocketId;
+  setTimeout(()=>{
+
+    receiverSocketId = usersTryingToConnect.find(
+      (users) => users.connectionId !== data.selfSocketId
+    );
+  },2000)
+  return receiverSocketId;
+}
 
 
-*/
 
 io.on("connection", (socket) => {
   userConnections.push({
@@ -62,13 +71,18 @@ io.on("connection", (socket) => {
   });
   console.log("userConnections", userConnections);
 
-  socket.on("offerSendToServer", (data) => {
+  socket.on("offerSendToServer",async (data) => {
     // console.log(data);
-    let receiverSocketId = userConnections.find(
-      (users) => users.connectionId !== data.selfSocketId
-    );
+
+    //  push into usersTryingToConnect 
+    usersTryingToConnect.push({
+      connectionId: data.selfSocketId,
+    });
+    const receiverSocketId = await  findOtherUserToConnect(data)
+    
 
     if (receiverSocketId) {
+      data.receiverSocketId = receiverSocketId;
       socket.to(receiverSocketId.connectionId).emit("receiveOffer", data);
     } else {
       socket.to(data.selfSocketId).emit("noUserFoundToConnect");
@@ -76,12 +90,12 @@ io.on("connection", (socket) => {
   });
 
   socket.on("sendAnswerToUser1", (data) => {
-    let answerReciver = userConnections.find(
-      (users) => users.connectionId !== data.selfSocketId
-    );
+    // let answerReciver = userConnections.find(
+    //   (users) => users.connectionId !== data.selfSocketId
+    // );
 
-    if (answerReciver) {
-      socket.to(answerReciver.connectionId).emit("receiverAnswer", data);
+    if (data.receiverSocketId) {
+      socket.to(data.receiverSocketId).emit("receiverAnswer", data);
     }
   });
 
