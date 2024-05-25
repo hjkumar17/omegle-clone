@@ -19,6 +19,8 @@ let remoteStream;
 let sendChannel;
 let availableAudioInputs;
 let availableAudioOutputs;
+let selfSocketId = socket.id;
+let remoteUserSocketId ;
 
 stopVideoButton.addEventListener("click", function () {
   myVideoStream.getTracks().forEach((track) => {
@@ -59,7 +61,7 @@ const updateDeviceList = () => {
       devices.forEach((device) => {
         const [kind, type, direction] =
           device.kind.match(/(\w+)(input|output)/i);
-        console.log(kind, type, direction);
+        // console.log(kind, type, direction);
       });
     })
     .catch((error) => {
@@ -85,7 +87,7 @@ const onSendChannelStateChange = () => {
   }
 };
 
-const createPeerConnection = async () => {
+const createPeerConnection = async (data) => {
   let server = {
     iceServers: [
       {
@@ -125,8 +127,9 @@ const createPeerConnection = async () => {
   peerConnection.onicecandidate = async (e) => {
     if (e.candidate) {
       socket.emit("candidateSentToUser", {
-        selfSocketId: socket.id,
+        selfSocketId: data.selfSocketId,
         iceCandidateData: e.candidate,
+        receiverSocketId:data.receiverSocketId
       });
     }
   };
@@ -144,14 +147,15 @@ const createPeerConnection = async () => {
   peerConnection.ondatachannel = receiverChannelCallback;
 };
 
-const createOffer = async () => {
-  createPeerConnection();
+const createOffer = async (data) => {
+  createPeerConnection(data);
   let offer = await peerConnection.createOffer();
   await peerConnection.setLocalDescription(offer);
 
   socket.emit("offerSendToServer", {
-    selfSocketId: socket.id,
+    selfSocketId: data.selfSocketId,
     offer: peerConnection.localDescription,
+    receiverSocketId:data.receiverSocketId
   });
 };
 
@@ -213,29 +217,29 @@ const removeVideoStream = () => {
 //  -- End Showing self video
 
 socket.on("connect", () => {
-  console.log(socket.id);
+  console.log("connect",socket.id,peerConnection);
   if (socket.connected) {
   }
 });
 
 const createAnswer = async (data) => {
   // remoteUser = data.remoteUser;
-  console.log("createAnswer");
+  console.log("createAnswer",peerConnection);
   // peerConnection = new RTCPeerConnection(server);
-  createPeerConnection();
+  createPeerConnection(data);
 
   await peerConnection.setRemoteDescription(data.offer);
   let answer = await peerConnection.createAnswer();
   await peerConnection.setLocalDescription(answer);
   socket.emit("sendAnswerToUser1", {
     answer: answer,
-    selfSocketId: socket.id,
+    selfSocketId: data.selfSocketId,
     receiverSocketId:data.receiverSocketId
   });
 };
 
 const addAnswer = async (data) => {
-  console.log("addAnser");
+  console.log("addAnser",peerConnection);
   if (!peerConnection.currentRemoteDescription) {
     peerConnection.setRemoteDescription(data.answer);
   }
@@ -243,17 +247,30 @@ const addAnswer = async (data) => {
 };
 
 socket.on("receiveOffer", (data) => {
+  console.log("receiveOffer",data,peerConnection);
+
   createAnswer(data);
 });
 
 socket.on("receiverAnswer", (data) => {
+  console.log("receiverAnswer",data,peerConnection);
+
   addAnswer(data);
 });
 
+
+socket.on("matchFoundToConnect", (data) => {
+  console.log("matchFoundToConnect",data,peerConnection);
+  
+  // remoteUserSocketId = data.receiverSocketId;
+  createOffer(data)
+});
 socket.on("noUserFoundToConnect", (data) => {
-  console.log("noUserFoundToConnect");
+  console.log("noUserFoundToConnect",data);
 });
 socket.on("candidateReciver", (data) => {
+  console.log("candidateReciver",data,peerConnection);
+
   peerConnection.addIceCandidate(data.iceCandidateData);
 });
 
@@ -263,8 +280,26 @@ msgSendButton.addEventListener("click", function (event) {
 
 startBtn.addEventListener('click',function(e){
   // start first call
-  createOffer()
+
+  socket.emit("usersTryingToConnect", {
+    selfSocketId: socket.id,
+  });
+setTimeout(()=>{
+  findUserToConnect();
+},5000)
+  // createOffer()
 })
+
+const findUserToConnect = ()=>{
+
+  // createPeerConnection();
+  // let offer = await peerConnection.createOffer();
+  // await peerConnection.setLocalDescription(offer);
+
+  socket.emit("findUserToConnect", {
+    selfSocketId: socket.id,
+  });
+}
 
 
 const closeConnection = async () => {

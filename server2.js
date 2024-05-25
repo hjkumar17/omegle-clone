@@ -54,13 +54,10 @@ let usersTryingToConnect = [];
 
 const  findOtherUserToConnect = (data)=>{
   let receiverSocketId;
-  setTimeout(()=>{
-
     receiverSocketId = usersTryingToConnect.find(
       (users) => users.connectionId !== data.selfSocketId
     );
-  },2000)
-  return receiverSocketId;
+  return receiverSocketId || false ;
 }
 
 
@@ -68,45 +65,75 @@ const  findOtherUserToConnect = (data)=>{
 io.on("connection", (socket) => {
   userConnections.push({
     connectionId: socket.id,
+    status:'available'
   });
   console.log("userConnections", userConnections);
 
-  socket.on("offerSendToServer",async (data) => {
+  socket.on("offerSendToServer", (data) => {
     // console.log(data);
 
     //  push into usersTryingToConnect 
-    usersTryingToConnect.push({
-      connectionId: data.selfSocketId,
-    });
-    const receiverSocketId = await  findOtherUserToConnect(data)
+    
+    // const receiverSocketId = await  findOtherUserToConnect(data)
     
 
-    if (receiverSocketId) {
-      data.receiverSocketId = receiverSocketId;
-      socket.to(receiverSocketId.connectionId).emit("receiveOffer", data);
-    } else {
-      socket.to(data.selfSocketId).emit("noUserFoundToConnect");
-    }
+    // if (receiverSocketId) {
+    //   data.receiverSocketId = receiverSocketId;
+  console.log("offerSendToServer", data);
+
+      io.to(data.receiverSocketId).emit("receiveOffer", data);
+    // } else {
+    //   socket.to(data.selfSocketId).emit("noUserFoundToConnect");
+    // }
   });
 
+  socket.on('usersTryingToConnect',(data)=>{
+    console.log("usersTryingToConnect", data);
+
+    usersTryingToConnect.push({
+      connectionId: data.selfSocketId,
+      status:'trying'
+    });
+
+  })
+  socket.on('findUserToConnect',(data)=>{
+ const receiverSocketId =  findOtherUserToConnect(data)
+    
+ console.log("findUserToConnect", data,receiverSocketId);
+
+    if (receiverSocketId) {
+      let newData = {
+
+      }
+      newData.receiverSocketId = data.selfSocketId;
+      newData.selfSocketId = receiverSocketId.connectionId;
+      io.to(receiverSocketId.connectionId).emit("matchFoundToConnect", newData);
+    } else {
+      io.to(data.selfSocketId).emit("noUserFoundToConnect");
+    }
+
+  })
+
   socket.on("sendAnswerToUser1", (data) => {
+ console.log("sendAnswerToUser1", data);
+
     // let answerReciver = userConnections.find(
     //   (users) => users.connectionId !== data.selfSocketId
     // );
 
-    if (data.receiverSocketId) {
-      socket.to(data.receiverSocketId).emit("receiverAnswer", data);
-    }
+    // if (data.receiverSocketId) {
+      io.to(data.selfSocketId).emit("receiverAnswer", data);
+    // }
   });
 
   socket.on("candidateSentToUser", (data) => {
-    let candidateReciver = userConnections.find(
-      (users) => users.connectionId !== data.selfSocketId
-    );
-    console.log(candidateReciver);
-    if (candidateReciver) {
-      socket.to(candidateReciver.connectionId).emit("candidateReciver", data);
-    }
+    // let candidateReciver = userConnections.find(
+    //   (users) => users.connectionId !== data.selfSocketId
+    // );
+    // console.log(candidateReciver);
+    // if (candidateReciver) {
+      io.to(data.receiverSocketId).emit("candidateReciver", data);
+    // }
   });
 
   socket.on("disconnect", () => {
@@ -118,8 +145,16 @@ io.on("connection", (socket) => {
         (user) => user.connectionId !== socket.id
       );
     }
-    console.log("user disconnect", socket.id);
-    console.log("userConnections", userConnections);
+    let disUser1 = usersTryingToConnect.find(
+      (user) => user.connectionId === socket.id
+    );
+    if (disUser1) {
+      usersTryingToConnect = usersTryingToConnect.filter(
+        (user) => user.connectionId !== socket.id
+      );
+    }
+    // console.log("user disconnect", socket.id);
+    console.log("userConnections", userConnections,usersTryingToConnect);
   });
   socket.on("remoteUserClosed", (data) => {
     let closedUser = userConnections.find(
@@ -128,7 +163,7 @@ io.on("connection", (socket) => {
 
     if (closedUser) {
       console.log("closed user id :", closedUser.connectionId);
-      socket.to(closedUser.connectionId).emit("closedRemoteUser", data);
+      io.to(closedUser.connectionId).emit("closedRemoteUser", data);
     }
   });
 });
